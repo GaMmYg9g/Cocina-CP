@@ -1,0 +1,20 @@
+{
+  "name": "Central Perk · Control de Ventas",
+  "short_name": "Central Perk",
+  "description": "Gestión de ventas diarias y comisiones por porcentaje",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7EED9",
+  "theme_color": "#1F3D2B",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

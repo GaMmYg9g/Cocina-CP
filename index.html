@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1F3D2B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Central Perk · Control de Ventas</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="app">
+
+  <header class="app-header">
+    <div class="brand">
+      <svg class="brand-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+        <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+        <line x1="6" y1="1" x2="6" y2="4"/>
+        <line x1="10" y1="1" x2="10" y2="4"/>
+        <line x1="14" y1="1" x2="14" y2="4"/>
+      </svg>
+      <div class="brand-text">
+        <span class="brand-title">Central Perk</span>
+        <span class="brand-subtitle">Control de ventas</span>
+      </div>
+    </div>
+    <div class="header-date" id="headerDate">—</div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- ===== VISTA: VENTA ===== -->
+    <section id="view-venta" class="view active">
+
+      <div class="search-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Buscar producto para agregar al pedido…" autocomplete="off" autocorrect="off" spellcheck="false">
+        <button id="searchClear" class="search-clear hidden" aria-label="Limpiar búsqueda">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+        <div id="searchResults" class="search-results hidden"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Pedido actual</h2>
+          <button id="clearTicket" class="btn-text">Limpiar</button>
+        </div>
+        <div id="currentTicketItems" class="ticket-items"></div>
+        <div class="ticket-total">
+          <span>Total del pedido</span>
+          <span id="currentTicketTotal">CUP$0</span>
+        </div>
+        <button id="addTicket" class="btn btn-primary btn-block">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Agregar pedido
+        </button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Pedidos del día</h2>
+          <span id="ticketCount" class="badge">0</span>
+        </div>
+        <div id="todayTickets" class="tickets-list"></div>
+      </div>
+    </section>
+
+    <!-- ===== VISTA: PRODUCTOS ===== -->
+    <section id="view-productos" class="view">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Productos y precios</h2>
+          <button id="addProductBtn" class="btn btn-primary btn-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Nuevo
+          </button>
+        </div>
+        <div class="search-wrapper search-wrapper-inline">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" id="productSearch" placeholder="Buscar en el catálogo…" autocomplete="off">
+        </div>
+      </div>
+      <div id="productosList" class="products-list"></div>
+    </section>
+
+    <!-- ===== VISTA: RESUMEN ===== -->
+    <section id="view-resumen" class="view">
+      <div class="summary-cards">
+        <div class="summary-card">
+          <span class="label">Total vendido</span>
+          <span class="value" id="totalVendido">CUP$0</span>
+        </div>
+        <div class="summary-card">
+          <span class="label">Pedidos</span>
+          <span class="value" id="totalPedidos">0</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Trabajadores en turno</h2>
+          <span class="badge" id="activeWorkersCount">0</span>
+        </div>
+        <p class="panel-hint">Marca quiénes trabajan hoy. Solo ellos entran en el cálculo.</p>
+        <div id="workerSelector" class="worker-selector"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><h2>Productos vendidos</h2></div>
+        <div id="productosVendidos" class="sold-list"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><h2>Comisiones del turno</h2></div>
+        <div id="trabajadoresList" class="workers-list"></div>
+      </div>
+
+      <div class="panel final-panel">
+        <div class="final-row">
+          <span>Total de comisiones</span>
+          <span id="totalComisiones" class="final-amount">CUP$0</span>
+        </div>
+        <div class="final-row highlight">
+          <span>División por trabajador</span>
+          <span id="divisionMitad" class="final-amount">CUP$0</span>
+        </div>
+      </div>
+
+      <button id="cerrarDia" class="btn btn-danger btn-block">
+        Cerrar día
+      </button>
+    </section>
+
+  </main>
+
+  <nav class="app-nav">
+    <button class="nav-btn active" data-view="venta">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+      </svg>
+      <span>Venta</span>
+    </button>
+    <button class="nav-btn" data-view="productos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="8" y1="6" x2="21" y2="6"/>
+        <line x1="8" y1="12" x2="21" y2="12"/>
+        <line x1="8" y1="18" x2="21" y2="18"/>
+        <line x1="3" y1="6" x2="3.01" y2="6"/>
+        <line x1="3" y1="12" x2="3.01" y2="12"/>
+        <line x1="3" y1="18" x2="3.01" y2="18"/>
+      </svg>
+      <span>Productos</span>
+    </button>
+    <button class="nav-btn" data-view="resumen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="20" x2="12" y2="10"/>
+        <line x1="18" y1="20" x2="18" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="16"/>
+      </svg>
+      <span>Resumen</span>
+    </button>
+  </nav>
+
+  <!-- Modal producto -->
+  <div id="productModal" class="modal hidden">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">Agregar producto</h3>
+        <button class="btn-close" data-close aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <form id="productForm">
+        <label class="field">
+          <span>Nombre</span>
+          <input type="text" id="pNombre" required>
+        </label>
+        <label class="field">
+          <span>Categoría</span>
+          <input type="text" id="pCategoria" list="categoriasList" required>
+          <datalist id="categoriasList"></datalist>
+        </label>
+        <label class="field">
+          <span>Precio (CUP$)</span>
+          <input type="number" id="pPrecio" min="0" step="1" required>
+        </label>
+        <label class="field">
+          <span>Descripción <em>(opcional)</em></span>
+          <textarea id="pDescripcion" rows="2"></textarea>
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close>Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/productos.js"></script>
+<script src="js/trabajadores.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
