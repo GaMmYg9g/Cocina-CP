@@ -790,3 +790,34 @@ body { overscroll-behavior-y: contain; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
+/* ... (Todo tu CSS anterior se mantiene igual) ... */
+
+/* ---------- Vista IPV ---------- */
+.ipv-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.ipv-row:last-child {
+  border-bottom: 0;
+}
+.ipv-name {
+  font-weight: 500;
+  color: var(--text);
+  font-size: 14px;
+}
+.ipv-qty {
+  font-family: Georgia, serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--green-dark);
+  background: var(--gold-soft);
+  padding: 4px 12px;
+  border-radius: 8px;
+}
+.ipv-qty.decimal {
+  color: var(--brick);
+  background: var(--brick-soft);
+}
