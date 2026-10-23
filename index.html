@@ -35,7 +35,6 @@
 
     <!-- ===== VISTA: VENTA ===== -->
     <section id="view-venta" class="view active">
-
       <div class="search-wrapper">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"/>
@@ -58,7 +57,7 @@
         <div id="currentTicketItems" class="ticket-items"></div>
         <div class="ticket-total">
           <span>Total del pedido</span>
-          <span id="currentTicketTotal">CUP$0</span>
+          <span id="currentTicketTotal">RD$0</span>
         </div>
         <button id="addTicket" class="btn btn-primary btn-block">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -99,12 +98,23 @@
       <div id="productosList" class="products-list"></div>
     </section>
 
+    <!-- ===== VISTA: IPV ===== -->
+    <section id="view-ipv" class="view">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Descuento IPV del día</h2>
+        </div>
+        <p class="panel-hint">Consumo teórico de insumos basado en los pedidos de hoy.</p>
+        <div id="ipvList" class="sold-list"></div>
+      </div>
+    </section>
+
     <!-- ===== VISTA: RESUMEN ===== -->
     <section id="view-resumen" class="view">
       <div class="summary-cards">
         <div class="summary-card">
           <span class="label">Total vendido</span>
-          <span class="value" id="totalVendido">CUP$0</span>
+          <span class="value" id="totalVendido">RD$0</span>
         </div>
         <div class="summary-card">
           <span class="label">Pedidos</span>
@@ -134,11 +144,11 @@
       <div class="panel final-panel">
         <div class="final-row">
           <span>Total de comisiones</span>
-          <span id="totalComisiones" class="final-amount">CUP$0</span>
+          <span id="totalComisiones" class="final-amount">RD$0</span>
         </div>
         <div class="final-row highlight">
           <span>División por trabajador</span>
-          <span id="divisionMitad" class="final-amount">CUP$0</span>
+          <span id="divisionMitad" class="final-amount">RD$0</span>
         </div>
       </div>
 
@@ -169,6 +179,14 @@
         <line x1="3" y1="18" x2="3.01" y2="18"/>
       </svg>
       <span>Productos</span>
+    </button>
+    <button class="nav-btn" data-view="ipv">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+        <line x1="12" y1="22.08" x2="12" y2="12"/>
+      </svg>
+      <span>IPV</span>
     </button>
     <button class="nav-btn" data-view="resumen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -203,7 +221,7 @@
           <datalist id="categoriasList"></datalist>
         </label>
         <label class="field">
-          <span>Precio (CUP$)</span>
+          <span>Precio (RD$)</span>
           <input type="number" id="pPrecio" min="0" step="1" required>
         </label>
         <label class="field">
@@ -222,6 +240,7 @@
 
 <script src="js/productos.js"></script>
 <script src="js/trabajadores.js"></script>
+<script src="js/recetas.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/app.js"></script>
 </body>
