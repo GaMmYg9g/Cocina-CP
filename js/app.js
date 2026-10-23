@@ -3,7 +3,7 @@
 // Lógica principal de la aplicación
 // =============================================================
 
-const CURRENCY = 'CUP$';
+const CURRENCY = 'RD$';
 
 const KEYS = {
   productos:            'cp_productos',
@@ -78,11 +78,9 @@ function loadState() {
     Storage.set(KEYS.lastDate, hoy);
     Storage.set(KEYS.tickets, []);
     Storage.set(KEYS.currentTicket, []);
-    // El turno se reinicia cada día → vuelve al default (los 2 primeros)
     Storage.remove(KEYS.trabajadoresActivos);
   }
 
-  // Productos
   let productos = Storage.get(KEYS.productos, null);
   if (!Array.isArray(productos) || productos.length === 0) {
     productos = PRODUCTOS_DEFAULT.map(p => ({ ...p }));
@@ -90,28 +88,22 @@ function loadState() {
   }
   State.productos = productos;
 
-  // Tickets
   State.tickets = Storage.get(KEYS.tickets, []);
   if (!Array.isArray(State.tickets)) State.tickets = [];
 
-  // Ticket actual
   State.currentTicket = Storage.get(KEYS.currentTicket, []);
   if (!Array.isArray(State.currentTicket)) State.currentTicket = [];
 
-  // Porcentajes personalizados
   State.porcentajes = Storage.get(KEYS.porcentajes, {});
   if (typeof State.porcentajes !== 'object' || State.porcentajes === null) {
     State.porcentajes = {};
   }
 
-  // Trabajadores activos (turno del día)
   const activosGuardados = Storage.get(KEYS.trabajadoresActivos, null);
   if (Array.isArray(activosGuardados)) {
-    // Filtrar ids que ya no existen en el catálogo
     const idsValidos = new Set(TRABAJADORES_DEFAULT.map(t => t.id));
     State.trabajadoresActivos = activosGuardados.filter(id => idsValidos.has(id));
   } else {
-    // Default: primeros 2 trabajadores del archivo trabajadores.js
     State.trabajadoresActivos = TRABAJADORES_DEFAULT.slice(0, 2).map(t => t.id);
     Storage.set(KEYS.trabajadoresActivos, State.trabajadoresActivos);
   }
@@ -251,6 +243,7 @@ function finalizeTicket() {
   renderCurrentTicket();
   renderTodayTickets();
   renderResumen();
+  renderIPV();
 }
 
 function deleteTicket(id) {
@@ -259,6 +252,7 @@ function deleteTicket(id) {
   saveTickets();
   renderTodayTickets();
   renderResumen();
+  renderIPV();
 }
 
 // =============================================================
@@ -349,6 +343,7 @@ function cerrarDia() {
   renderCurrentTicket();
   renderTodayTickets();
   renderResumen();
+  renderIPV();
   switchView('venta');
 }
 
@@ -568,7 +563,60 @@ function renderProductos() {
 }
 
 // =============================================================
-// Render: resumen (con selector de turno)
+// Render: IPV (Inventario Para Venta)
+// =============================================================
+
+function computeIPV() {
+  const usage = {};
+  
+  // Inicializar contadores en 0
+  Object.keys(NOMBRES_IPV).forEach(key => {
+    usage[key] = 0;
+  });
+
+  // Recorrer todos los tickets vendidos
+  State.tickets.forEach(t => {
+    t.items.forEach(i => {
+      const recipe = RECETAS_IPV[i.productoId];
+      if (recipe) {
+        // Sumar las cantidades correspondientes multiplicadas por la cantidad vendida
+        for (const [insumo, qty] of Object.entries(recipe)) {
+          usage[insumo] += (qty * i.cantidad);
+        }
+      }
+    });
+  });
+
+  return usage;
+}
+
+function renderIPV() {
+  const cont = document.getElementById('ipvList');
+  const usage = computeIPV();
+
+  // Convertir a array y filtrar los que son 0
+  const items = Object.entries(usage)
+    .filter(([_, qty]) => qty > 0)
+    .map(([key, qty]) => ({
+      label: NOMBRES_IPV[key],
+      qty: qty
+    }));
+
+  if (items.length === 0) {
+    cont.innerHTML = `<div class="empty">No se ha consumido inventario hoy.</div>`;
+    return;
+  }
+
+  cont.innerHTML = items.map(item => `
+    <div class="ipv-row">
+      <span class="ipv-name">${escapeHtml(item.label)}</span>
+      <span class="ipv-qty ${!Number.isInteger(item.qty) ? 'decimal' : ''}">${item.qty}</span>
+    </div>
+  `).join('');
+}
+
+// =============================================================
+// Render: resumen
 // =============================================================
 
 function computeSummary() {
@@ -586,7 +634,6 @@ function computeSummary() {
     });
   });
 
-  // Solo los trabajadores EN TURNO entran en el cálculo
   const trabajadores = getTrabajadoresEnTurno().map(t => ({
     ...t,
     comision: totalVendido * (Number(t.porcentaje) || 0) / 100
@@ -604,7 +651,6 @@ function renderResumen() {
   document.getElementById('totalVendido').textContent = formatMoney(s.totalVendido);
   document.getElementById('totalPedidos').textContent = s.totalPedidos;
 
-  // ---- Selector de trabajadores en turno ----
   const selectorCont = document.getElementById('workerSelector');
   const activeCountEl = document.getElementById('activeWorkersCount');
   const todos = getAllTrabajadores();
@@ -628,7 +674,6 @@ function renderResumen() {
     });
   }
 
-  // ---- Productos vendidos ----
   const contVend = document.getElementById('productosVendidos');
   const entries = Object.values(s.vendidos).sort((a, b) => b.cantidad - a.cantidad);
   if (entries.length === 0) {
@@ -643,7 +688,6 @@ function renderResumen() {
     `).join('');
   }
 
-  // ---- Comisiones del turno ----
   const contTra = document.getElementById('trabajadoresList');
 
   if (s.trabajadores.length === 0) {
@@ -709,6 +753,7 @@ function switchView(name) {
 
   if (name === 'resumen') renderResumen();
   if (name === 'productos') renderProductos();
+  if (name === 'ipv') renderIPV();
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -766,6 +811,7 @@ function init() {
   renderTodayTickets();
   renderProductos();
   renderResumen();
+  renderIPV();
 }
 
 document.addEventListener('DOMContentLoaded', init);
