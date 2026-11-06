@@ -49,21 +49,24 @@
         <div id="searchResults" class="search-results hidden"></div>
       </div>
 
-      <div class="panel">
+      <div class="panel" id="currentTicketPanel">
         <div class="panel-header">
-          <h2>Pedido actual</h2>
-          <button id="clearTicket" class="btn-text">Limpiar</button>
+          <h2 id="currentTicketTitle">Pedido actual</h2>
+          <div class="header-actions">
+            <button id="cancelEditBtn" class="btn-text hidden" style="color: var(--text-muted); margin-right: 8px;">Cancelar</button>
+            <button id="clearTicket" class="btn-text">Limpiar</button>
+          </div>
         </div>
         <div id="currentTicketItems" class="ticket-items"></div>
         <div class="ticket-total">
           <span>Total del pedido</span>
-          <span id="currentTicketTotal">RD$0</span>
+          <span id="currentTicketTotal">CUP 0</span>
         </div>
         <button id="addTicket" class="btn btn-primary btn-block">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
-          Agregar pedido
+          <span id="addTicketText">Agregar pedido</span>
         </button>
       </div>
 
@@ -114,7 +117,7 @@
       <div class="summary-cards">
         <div class="summary-card">
           <span class="label">Total vendido</span>
-          <span class="value" id="totalVendido">RD$0</span>
+          <span class="value" id="totalVendido">CUP 0</span>
         </div>
         <div class="summary-card">
           <span class="label">Pedidos</span>
@@ -132,7 +135,10 @@
       </div>
 
       <div class="panel">
-        <div class="panel-header"><h2>Productos vendidos</h2></div>
+        <div class="panel-header">
+          <h2>Productos vendidos</h2>
+          <span class="panel-hint" style="margin: 0; font-size: 11px;">Marca para el cuadre</span>
+        </div>
         <div id="productosVendidos" class="sold-list"></div>
       </div>
 
@@ -144,11 +150,11 @@
       <div class="panel final-panel">
         <div class="final-row">
           <span>Total de comisiones</span>
-          <span id="totalComisiones" class="final-amount">RD$0</span>
+          <span id="totalComisiones" class="final-amount">CUP 0</span>
         </div>
         <div class="final-row highlight">
           <span>División por trabajador</span>
-          <span id="divisionMitad" class="final-amount">RD$0</span>
+          <span id="divisionMitad" class="final-amount">CUP 0</span>
         </div>
       </div>
 
@@ -221,7 +227,7 @@
           <datalist id="categoriasList"></datalist>
         </label>
         <label class="field">
-          <span>Precio (RD$)</span>
+          <span>Precio (CUP)</span>
           <input type="number" id="pPrecio" min="0" step="1" required>
         </label>
         <label class="field">
