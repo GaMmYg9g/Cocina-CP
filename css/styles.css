@@ -348,6 +348,12 @@ body { overscroll-behavior-y: contain; }
 }
 .btn-close svg { width: 18px; height: 18px; }
 
+/* --- Botones de Acción en el Header --- */
+.header-actions {
+  display: flex;
+  align-items: center;
+}
+
 /* ---------- Pedidos del día ---------- */
 .tickets-list { display: flex; flex-direction: column; gap: 8px; }
 .ticket-card {
@@ -375,7 +381,7 @@ body { overscroll-behavior-y: contain; }
   border-radius: 6px;
 }
 .ticket-time { font-size: 12px; color: var(--text-muted); }
-.ticket-summary-right { display: flex; align-items: center; gap: 10px; }
+.ticket-summary-right { display: flex; align-items: center; gap: 8px; }
 .ticket-total { font-weight: 700; color: var(--green-dark); font-size: 15px; }
 .ticket-body {
   padding: 6px 14px 12px;
@@ -463,12 +469,15 @@ body { overscroll-behavior-y: contain; }
 .sold-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 0;
+  gap: 8px;
+  padding: 10px 0;
   border-bottom: 1px solid var(--border);
   font-size: 14px;
+  transition: opacity 0.2s;
 }
 .sold-row:last-child { border-bottom: 0; }
+.sold-row.checked { opacity: 0.4; }
+.sold-row.checked .sold-name { text-decoration: line-through; }
 .sold-qty {
   background: var(--gold-soft);
   color: var(--gold);
@@ -481,6 +490,41 @@ body { overscroll-behavior-y: contain; }
 }
 .sold-name { flex: 1; color: var(--text); }
 .sold-total { font-weight: 600; color: var(--text-muted); font-size: 13px; }
+
+/* Checkbox Personalizado */
+.check-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 4px;
+  margin-right: 2px;
+}
+.check-container input { display: none; }
+.checkmark {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  display: inline-block;
+  position: relative;
+  transition: background 0.2s, border-color 0.2s;
+}
+.check-container input:checked + .checkmark {
+  background: var(--green-dark);
+  border-color: var(--green-dark);
+}
+.check-container input:checked + .checkmark::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
 
 /* ---------- Selector de trabajadores en turno ---------- */
 .worker-selector {
@@ -776,22 +820,6 @@ body { overscroll-behavior-y: contain; }
 }
 .modal-actions .btn { flex: 1; }
 
-/* ---------- Utilidades ---------- */
-.empty {
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 13.5px;
-  padding: 18px 10px;
-  font-style: italic;
-}
-.hidden { display: none !important; }
-
-/* Scrollbar sutil */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-track { background: transparent; }
-/* ... (Todo tu CSS anterior se mantiene igual) ... */
-
 /* ---------- Vista IPV ---------- */
 .ipv-row {
   display: flex;
@@ -821,3 +849,18 @@ body { overscroll-behavior-y: contain; }
   color: var(--brick);
   background: var(--brick-soft);
 }
+
+/* ---------- Utilidades ---------- */
+.empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13.5px;
+  padding: 18px 10px;
+  font-style: italic;
+}
+.hidden { display: none !important; }
+
+/* Scrollbar sutil */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
