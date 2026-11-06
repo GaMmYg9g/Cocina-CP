@@ -3,7 +3,7 @@
 // Lógica principal de la aplicación
 // =============================================================
 
-const CURRENCY = 'RD$';
+const CURRENCY = 'CUP';
 
 const KEYS = {
   productos:            'cp_productos',
@@ -11,7 +11,8 @@ const KEYS = {
   currentTicket:        'cp_current_ticket',
   porcentajes:          'cp_porcentajes',
   lastDate:             'cp_last_date',
-  trabajadoresActivos:  'cp_trabajadores_activos'
+  trabajadoresActivos:  'cp_trabajadores_activos',
+  productosChequeados:  'cp_productos_chequeados'
 };
 
 const State = {
@@ -20,6 +21,8 @@ const State = {
   currentTicket: [],
   porcentajes: {},
   trabajadoresActivos: [],
+  productosChequeados: [],
+  editingTicketId: null,
   searchQuery: '',
   productSearchQuery: '',
   editingProductId: null
@@ -39,7 +42,7 @@ function todayISO() {
 
 function formatMoney(n) {
   const num = Number(n) || 0;
-  return CURRENCY + num.toLocaleString('es-DO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return CURRENCY + ' ' + num.toLocaleString('es-DO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 function formatDateLong(iso) {
@@ -78,6 +81,7 @@ function loadState() {
     Storage.set(KEYS.lastDate, hoy);
     Storage.set(KEYS.tickets, []);
     Storage.set(KEYS.currentTicket, []);
+    Storage.set(KEYS.productosChequeados, []);
     Storage.remove(KEYS.trabajadoresActivos);
   }
 
@@ -99,6 +103,9 @@ function loadState() {
     State.porcentajes = {};
   }
 
+  State.productosChequeados = Storage.get(KEYS.productosChequeados, []);
+  if (!Array.isArray(State.productosChequeados)) State.productosChequeados = [];
+
   const activosGuardados = Storage.get(KEYS.trabajadoresActivos, null);
   if (Array.isArray(activosGuardados)) {
     const idsValidos = new Set(TRABAJADORES_DEFAULT.map(t => t.id));
@@ -114,6 +121,7 @@ function saveTickets()           { Storage.set(KEYS.tickets, State.tickets); }
 function saveCurrentTicket()     { Storage.set(KEYS.currentTicket, State.currentTicket); }
 function savePorcentajes()       { Storage.set(KEYS.porcentajes, State.porcentajes); }
 function saveTrabajadoresActivos(){ Storage.set(KEYS.trabajadoresActivos, State.trabajadoresActivos); }
+function saveProductosChequeados(){ Storage.set(KEYS.productosChequeados, State.productosChequeados); }
 
 // =============================================================
 // Trabajadores
@@ -174,7 +182,7 @@ function getProductoById(id) {
 }
 
 // =============================================================
-// Ticket actual
+// Ticket actual y Edición
 // =============================================================
 
 function addToCurrentTicket(productoId) {
@@ -215,6 +223,7 @@ function clearCurrentTicket() {
   if (State.currentTicket.length === 0) return;
   if (!confirm('¿Vaciar el pedido actual?')) return;
   State.currentTicket = [];
+  State.editingTicketId = null; // Cancelar edición si estaban editando
   saveCurrentTicket();
   renderCurrentTicket();
 }
@@ -228,15 +237,29 @@ function finalizeTicket() {
     alert('El pedido está vacío.');
     return;
   }
+  
   const total = currentTicketTotal();
-  const ticket = {
-    id: uid('t'),
-    fecha: todayISO(),
-    timestamp: Date.now(),
-    items: State.currentTicket.map(i => ({ ...i })),
-    total
-  };
-  State.tickets.push(ticket);
+  
+  if (State.editingTicketId) {
+    // Estamos editando un ticket existente
+    const index = State.tickets.findIndex(t => t.id === State.editingTicketId);
+    if (index !== -1) {
+      State.tickets[index].items = State.currentTicket.map(i => ({ ...i }));
+      State.tickets[index].total = total;
+    }
+    State.editingTicketId = null;
+  } else {
+    // Creando un ticket nuevo
+    const ticket = {
+      id: uid('t'),
+      fecha: todayISO(),
+      timestamp: Date.now(),
+      items: State.currentTicket.map(i => ({ ...i })),
+      total
+    };
+    State.tickets.push(ticket);
+  }
+  
   State.currentTicket = [];
   saveTickets();
   saveCurrentTicket();
@@ -246,8 +269,49 @@ function finalizeTicket() {
   renderIPV();
 }
 
+function editTicket(id) {
+  if (State.currentTicket.length > 0) {
+    if (!confirm('Hay un pedido en curso. ¿Deseas descartarlo para editar este?')) {
+      return;
+    }
+  }
+  
+  const ticket = State.tickets.find(t => t.id === id);
+  if (!ticket) return;
+
+  // Cargar los datos al currentTicket SIN eliminar el original de la lista
+  State.currentTicket = ticket.items.map(i => ({ ...i }));
+  State.editingTicketId = ticket.id;
+  
+  saveCurrentTicket();
+  renderCurrentTicket();
+  
+  // Hacer scroll hacia arriba para ver el pedido
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+  if (!State.editingTicketId) return;
+  if (!confirm('¿Descartar los cambios de la edición?')) return;
+  
+  // Solo limpiamos la edición, el ticket original sigue intacto en la lista
+  State.editingTicketId = null;
+  State.currentTicket = [];
+  
+  saveCurrentTicket();
+  renderCurrentTicket();
+}
+
 function deleteTicket(id) {
   if (!confirm('¿Eliminar este pedido del día?')) return;
+  
+  if (State.editingTicketId === id) {
+    State.editingTicketId = null;
+    State.currentTicket = [];
+    saveCurrentTicket();
+    renderCurrentTicket();
+  }
+
   State.tickets = State.tickets.filter(t => t.id !== id);
   saveTickets();
   renderTodayTickets();
@@ -338,8 +402,11 @@ function cerrarDia() {
   if (!confirm('¿Cerrar el día? Se eliminarán todos los pedidos de hoy.')) return;
   State.tickets = [];
   State.currentTicket = [];
+  State.productosChequeados = [];
+  State.editingTicketId = null;
   saveTickets();
   saveCurrentTicket();
+  saveProductosChequeados();
   renderCurrentTicket();
   renderTodayTickets();
   renderResumen();
@@ -400,6 +467,20 @@ function renderSearchResults() {
 function renderCurrentTicket() {
   const cont = document.getElementById('currentTicketItems');
   const totalEl = document.getElementById('currentTicketTotal');
+  
+  const titleEl = document.getElementById('currentTicketTitle');
+  const btnTextEl = document.getElementById('addTicketText');
+  const cancelBtn = document.getElementById('cancelEditBtn');
+
+  if (State.editingTicketId) {
+    titleEl.textContent = 'Editando Pedido';
+    btnTextEl.textContent = 'Guardar cambios';
+    cancelBtn.classList.remove('hidden');
+  } else {
+    titleEl.textContent = 'Pedido actual';
+    btnTextEl.textContent = 'Agregar pedido';
+    cancelBtn.classList.add('hidden');
+  }
 
   if (State.currentTicket.length === 0) {
     cont.innerHTML = `<div class="empty">Aún no hay productos en este pedido.</div>`;
@@ -475,7 +556,12 @@ function renderTodayTickets() {
           </div>
           <div class="ticket-summary-right">
             <span class="ticket-total">${formatMoney(t.total)}</span>
-            <button type="button" class="btn-icon-danger" data-delete="${t.id}" aria-label="Eliminar">
+            <button type="button" class="btn-icon" data-edit-ticket="${t.id}" aria-label="Editar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+              </svg>
+            </button>
+            <button type="button" class="btn-icon btn-icon-danger" data-delete="${t.id}" aria-label="Eliminar">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"/>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -493,6 +579,14 @@ function renderTodayTickets() {
       e.preventDefault();
       e.stopPropagation();
       deleteTicket(btn.dataset.delete);
+    });
+  });
+  
+  cont.querySelectorAll('button[data-edit-ticket]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      editTicket(btn.dataset.editTicket);
     });
   });
 }
@@ -563,30 +657,23 @@ function renderProductos() {
 }
 
 // =============================================================
-// Render: IPV (Inventario Para Venta)
+// Render: IPV
 // =============================================================
 
 function computeIPV() {
   const usage = {};
-  
-  // Inicializar contadores en 0
-  Object.keys(NOMBRES_IPV).forEach(key => {
-    usage[key] = 0;
-  });
+  Object.keys(NOMBRES_IPV).forEach(key => { usage[key] = 0; });
 
-  // Recorrer todos los tickets vendidos
   State.tickets.forEach(t => {
     t.items.forEach(i => {
       const recipe = RECETAS_IPV[i.productoId];
       if (recipe) {
-        // Sumar las cantidades correspondientes multiplicadas por la cantidad vendida
         for (const [insumo, qty] of Object.entries(recipe)) {
           usage[insumo] += (qty * i.cantidad);
         }
       }
     });
   });
-
   return usage;
 }
 
@@ -594,7 +681,6 @@ function renderIPV() {
   const cont = document.getElementById('ipvList');
   const usage = computeIPV();
 
-  // Convertir a array y filtrar los que son 0
   const items = Object.entries(usage)
     .filter(([_, qty]) => qty > 0)
     .map(([key, qty]) => ({
@@ -627,7 +713,7 @@ function computeSummary() {
   State.tickets.forEach(t => {
     t.items.forEach(i => {
       if (!vendidos[i.productoId]) {
-        vendidos[i.productoId] = { nombre: i.nombre, cantidad: 0, total: 0 };
+        vendidos[i.productoId] = { id: i.productoId, nombre: i.nombre, cantidad: 0, total: 0 };
       }
       vendidos[i.productoId].cantidad += i.cantidad;
       vendidos[i.productoId].total += i.precio * i.cantidad;
@@ -651,6 +737,7 @@ function renderResumen() {
   document.getElementById('totalVendido').textContent = formatMoney(s.totalVendido);
   document.getElementById('totalPedidos').textContent = s.totalPedidos;
 
+  // Trabajadores
   const selectorCont = document.getElementById('workerSelector');
   const activeCountEl = document.getElementById('activeWorkersCount');
   const todos = getAllTrabajadores();
@@ -658,7 +745,7 @@ function renderResumen() {
   activeCountEl.textContent = State.trabajadoresActivos.length;
 
   if (todos.length === 0) {
-    selectorCont.innerHTML = `<div class="worker-selector-empty">No hay trabajadores en el archivo trabajadores.js</div>`;
+    selectorCont.innerHTML = `<div class="worker-selector-empty">No hay trabajadores</div>`;
   } else {
     selectorCont.innerHTML = todos.map(t => `
       <button type="button" class="worker-chip ${isTrabajadorActivo(t.id) ? 'active' : ''}"
@@ -674,20 +761,43 @@ function renderResumen() {
     });
   }
 
+  // Productos Vendidos con Checkbox
   const contVend = document.getElementById('productosVendidos');
   const entries = Object.values(s.vendidos).sort((a, b) => b.cantidad - a.cantidad);
+  
   if (entries.length === 0) {
     contVend.innerHTML = `<div class="empty">Sin ventas registradas.</div>`;
   } else {
-    contVend.innerHTML = entries.map(v => `
-      <div class="sold-row">
-        <span class="sold-qty">${v.cantidad}×</span>
-        <span class="sold-name">${escapeHtml(v.nombre)}</span>
-        <span class="sold-total">${formatMoney(v.total)}</span>
-      </div>
-    `).join('');
+    contVend.innerHTML = entries.map(v => {
+      const isChecked = State.productosChequeados.includes(v.id);
+      return `
+        <div class="sold-row ${isChecked ? 'checked' : ''}">
+          <label class="check-container">
+            <input type="checkbox" data-check-id="${v.id}" ${isChecked ? 'checked' : ''}>
+            <span class="checkmark"></span>
+          </label>
+          <span class="sold-qty">${v.cantidad}×</span>
+          <span class="sold-name">${escapeHtml(v.nombre)}</span>
+          <span class="sold-total">${formatMoney(v.total)}</span>
+        </div>
+      `;
+    }).join('');
+
+    contVend.querySelectorAll('input[data-check-id]').forEach(chk => {
+      chk.addEventListener('change', (e) => {
+        const id = e.target.dataset.checkId;
+        if (e.target.checked) {
+          if (!State.productosChequeados.includes(id)) State.productosChequeados.push(id);
+        } else {
+          State.productosChequeados = State.productosChequeados.filter(x => x !== id);
+        }
+        saveProductosChequeados();
+        renderResumen();
+      });
+    });
   }
 
+  // Comisiones
   const contTra = document.getElementById('trabajadoresList');
 
   if (s.trabajadores.length === 0) {
@@ -792,6 +902,7 @@ function init() {
   });
 
   document.getElementById('clearTicket').addEventListener('click', clearCurrentTicket);
+  document.getElementById('cancelEditBtn').addEventListener('click', cancelEdit);
   document.getElementById('addTicket').addEventListener('click', finalizeTicket);
 
   document.getElementById('addProductBtn').addEventListener('click', () => openProductModal(null));
