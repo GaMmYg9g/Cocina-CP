@@ -3,7 +3,7 @@
 // Cache-first para el app shell → funciona 100% offline
 // =============================================================
 
-const CACHE_NAME = 'central-perk-v6';
+const CACHE_NAME = 'central-perk-v7';
 const APP_SHELL = [
   './',
   './index.html',
