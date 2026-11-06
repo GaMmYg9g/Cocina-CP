@@ -1,57 +1,56 @@
 // =============================================================
 // Service Worker · Central Perk
-// Cache-first para el app shell → funciona 100% offline
+// Estrategia: Network First + Limpieza Automática de Caché
 // =============================================================
 
-const CACHE_NAME = 'central-perk-v7';
-const APP_SHELL = [
-  './',
-  './index.html',
-  './manifest.json',
-  './css/styles.css',
-  './js/productos.js',
-  './js/trabajadores.js',
-  './js/storage.js',
-  './js/app.js',
-  './icons/icon.svg'
-];
+const CACHE_NAME = 'central-perk-cache'; // Nombre fijo, sin versiones manuales
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
-  );
+  // Fuerza al nuevo Service Worker a activarse inmediatamente
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+  // Limpia TODOS los cachés antiguos automáticamente
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-      )
-    ).then(() => self.clients.claim())
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          return caches.delete(cacheName); // Borra el caché viejo
+        })
+      );
+    }).then(() => self.clients.claim()) // Toma el control de las pestañas abiertas
   );
 });
 
 self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  if (req.method !== 'GET') return;
+  // Solo manejamos peticiones GET
+  if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req).then((response) => {
-        // Solo cachear respuestas válidas del mismo origen
-        if (response && response.status === 200 && response.type === 'basic') {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+    // 1. Intentar ir a la red primero (Network First)
+    fetch(event.request)
+      .then((networkResponse) => {
+        // Si la respuesta es válida, la guardamos en el caché actualizado
+        if (networkResponse && networkResponse.status === 200) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
         }
-        return response;
-      }).catch(() => {
-        // Fallback offline
-        if (req.mode === 'navigate') return caches.match('./index.html');
-      });
-    })
+        return networkResponse;
+      })
+      .catch(() => {
+        // 2. Si falla la red (sin internet), buscar en el caché (Offline fallback)
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          // Si no está en caché y no hay red, y es una navegación, devolver el index
+          if (event.request.mode === 'navigate') {
+            return caches.match('./index.html');
+          }
+        });
+      })
   );
 });
