@@ -7,6 +7,7 @@ const CURRENCY = 'CUP';
 
 const KEYS = {
   productos:            'cp_productos',
+  productosVersion:     'cp_productos_version', // <-- NUEVO
   tickets:              'cp_tickets',
   currentTicket:        'cp_current_ticket',
   porcentajes:          'cp_porcentajes',
@@ -71,7 +72,7 @@ function normalize(str) {
 }
 
 // =============================================================
-// Carga / guardado
+// Carga / guardado y Migración
 // =============================================================
 
 function loadState() {
@@ -85,11 +86,35 @@ function loadState() {
     Storage.remove(KEYS.trabajadoresActivos);
   }
 
+  // --- LÓGICA DE MIGRACIÓN DE PRODUCTOS ---
   let productos = Storage.get(KEYS.productos, null);
+  const versionGuardada = Storage.get(KEYS.productosVersion, 0);
+
   if (!Array.isArray(productos) || productos.length === 0) {
+    // Primera vez que se abre la app
     productos = PRODUCTOS_DEFAULT.map(p => ({ ...p }));
     Storage.set(KEYS.productos, productos);
+    Storage.set(KEYS.productosVersion, PRODUCTOS_VERSION);
+  } else if (versionGuardada < PRODUCTOS_VERSION) {
+    // Hay una nueva versión: actualizamos precios y agregamos nuevos
+    const productosMap = new Map(productos.map(p => [p.id, p]));
+    
+    PRODUCTOS_DEFAULT.forEach(defaultProd => {
+      if (productosMap.has(defaultProd.id)) {
+        // Actualizar precio y descripción, pero mantener el nombre por si lo editaron
+        const existing = productosMap.get(defaultProd.id);
+        existing.precio = defaultProd.precio;
+        existing.descripcion = defaultProd.descripcion;
+      } else {
+        // Es un producto nuevo en el código, lo agregamos
+        productos.push({ ...defaultProd });
+      }
+    });
+    
+    Storage.set(KEYS.productos, productos);
+    Storage.set(KEYS.productosVersion, PRODUCTOS_VERSION);
   }
+  
   State.productos = productos;
 
   State.tickets = Storage.get(KEYS.tickets, []);
@@ -223,7 +248,7 @@ function clearCurrentTicket() {
   if (State.currentTicket.length === 0) return;
   if (!confirm('¿Vaciar el pedido actual?')) return;
   State.currentTicket = [];
-  State.editingTicketId = null; // Cancelar edición si estaban editando
+  State.editingTicketId = null;
   saveCurrentTicket();
   renderCurrentTicket();
 }
@@ -241,7 +266,6 @@ function finalizeTicket() {
   const total = currentTicketTotal();
   
   if (State.editingTicketId) {
-    // Estamos editando un ticket existente
     const index = State.tickets.findIndex(t => t.id === State.editingTicketId);
     if (index !== -1) {
       State.tickets[index].items = State.currentTicket.map(i => ({ ...i }));
@@ -249,7 +273,6 @@ function finalizeTicket() {
     }
     State.editingTicketId = null;
   } else {
-    // Creando un ticket nuevo
     const ticket = {
       id: uid('t'),
       fecha: todayISO(),
@@ -279,14 +302,11 @@ function editTicket(id) {
   const ticket = State.tickets.find(t => t.id === id);
   if (!ticket) return;
 
-  // Cargar los datos al currentTicket SIN eliminar el original de la lista
   State.currentTicket = ticket.items.map(i => ({ ...i }));
   State.editingTicketId = ticket.id;
   
   saveCurrentTicket();
   renderCurrentTicket();
-  
-  // Hacer scroll hacia arriba para ver el pedido
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -294,10 +314,8 @@ function cancelEdit() {
   if (!State.editingTicketId) return;
   if (!confirm('¿Descartar los cambios de la edición?')) return;
   
-  // Solo limpiamos la edición, el ticket original sigue intacto en la lista
   State.editingTicketId = null;
   State.currentTicket = [];
-  
   saveCurrentTicket();
   renderCurrentTicket();
 }
@@ -737,7 +755,6 @@ function renderResumen() {
   document.getElementById('totalVendido').textContent = formatMoney(s.totalVendido);
   document.getElementById('totalPedidos').textContent = s.totalPedidos;
 
-  // Trabajadores
   const selectorCont = document.getElementById('workerSelector');
   const activeCountEl = document.getElementById('activeWorkersCount');
   const todos = getAllTrabajadores();
@@ -761,7 +778,6 @@ function renderResumen() {
     });
   }
 
-  // Productos Vendidos con Checkbox
   const contVend = document.getElementById('productosVendidos');
   const entries = Object.values(s.vendidos).sort((a, b) => b.cantidad - a.cantidad);
   
@@ -797,7 +813,6 @@ function renderResumen() {
     });
   }
 
-  // Comisiones
   const contTra = document.getElementById('trabajadoresList');
 
   if (s.trabajadores.length === 0) {
@@ -906,6 +921,19 @@ function init() {
   document.getElementById('addTicket').addEventListener('click', finalizeTicket);
 
   document.getElementById('addProductBtn').addEventListener('click', () => openProductModal(null));
+  
+  // --- NUEVO: Botón para restaurar catálogo manualmente ---
+  document.getElementById('resetCatalogBtn').addEventListener('click', () => {
+    if (confirm('¿Restaurar el catálogo a los valores por defecto?\n\nSe perderán los cambios de nombre que hayas hecho a los productos base y los productos que agregaste manualmente. Los pedidos y trabajadores no se borrarán.')) {
+      State.productos = PRODUCTOS_DEFAULT.map(p => ({ ...p }));
+      saveProductos();
+      Storage.set(KEYS.productosVersion, PRODUCTOS_VERSION);
+      renderProductos();
+      renderSearchResults();
+      alert('Catálogo restaurado y precios actualizados.');
+    }
+  });
+
   document.getElementById('productSearch').addEventListener('input', (e) => {
     State.productSearchQuery = e.target.value;
     renderProductos();
