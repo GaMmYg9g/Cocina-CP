@@ -3,6 +3,10 @@
 // Precios actualizados según menú (CUP)
 // =============================================================
 
+// Si haces cambios en los precios, sube este número (ej. a 3)
+// para que la app aplique la actualización automáticamente.
+const PRODUCTOS_VERSION = 2;
+
 const PRODUCTOS_DEFAULT = [
   // ---------- SNACKS ----------
   { id: 'p001', nombre: 'Tostones rellenos de atún', categoria: 'Snacks', precio: 1500, descripcion: '8 unidades, 80g de atún, mayonesa, cebolla' },
